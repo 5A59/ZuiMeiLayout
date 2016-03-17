@@ -140,8 +140,6 @@ public class ZuiMeiLayout extends HorizontalScrollView{
             initDownY = itemHeight - initHeight;
 
             innerLayout.setMinimumWidth(itemWidth * (SHOW_ITEM_NUM + OUT_ITEM_NUM));
-            Logger.d("inner layout width  " + innerLayout.getWidth()
-                    + "   should be  " + (itemWidth * (SHOW_ITEM_NUM + OUT_ITEM_NUM)));
 
             itemList.get(0).setWidth(itemWidth);
             for (int i = 1; i < SHOW_ITEM_NUM + OUT_ITEM_NUM; i ++){
