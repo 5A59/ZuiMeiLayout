@@ -10,6 +10,7 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.util.LruCache;
 import android.view.MotionEvent;
+import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
@@ -104,7 +105,7 @@ public class ZuiMeiLayout extends HorizontalScrollView{
 //        itemParams.weight = 1;
         for (int i = 0; i < SHOW_ITEM_NUM + OUT_ITEM_NUM; i ++){
             ZuiMeiItem zuiMeiItem = new ZuiMeiItem(context);
-            zuiMeiItem.setText("test");
+            zuiMeiItem.setText("te"+ i);
             zuiMeiItem.setY(initHeight);
             innerLayout.addView(zuiMeiItem, itemParams);
             if (i < SHOW_ITEM_NUM){
@@ -167,7 +168,7 @@ public class ZuiMeiLayout extends HorizontalScrollView{
         float x = event.getX();
         float y = event.getY();
         int pos = getEventPos(x, y);
-        Logger.d("curPos  " + pos);
+//        Logger.d("curPos  " + pos);
 
         switch (event.getAction()){
             case MotionEvent.ACTION_DOWN:
@@ -203,36 +204,107 @@ public class ZuiMeiLayout extends HorizontalScrollView{
     }
 
     public void setItemsHeight(int pos){
-        Logger.d("item list " + itemList.size());
-        itemList.get(pos).setY(initY);
-        for (int i = pos + 1; i < itemList.size(); i ++){
+//        itemList.get(pos).setY(initY);
+//        for (int i = pos + 1; i < itemList.size(); i ++){
+//            int s = i - pos;
+//            itemList.get(i).setY(initY + s * subHeight);
+//        }
+//
+//        for (int i = pos - 1; i >= 0; i --){
+//            int s = pos - i;
+//            itemList.get(i).setY(initY + s * subHeight);
+//        }
+        innerLayout.getChildAt(pos).setY(initY);
+        for (int i = pos + 1; i < innerLayout.getChildCount(); i ++){
             int s = i - pos;
-            itemList.get(i).setY(initY + s * subHeight);
+            float shouldY = initY + s * subHeight;
+            innerLayout.getChildAt(i).setY(shouldY > initDownY ? initDownY : shouldY);
+//            innerLayout.getChildAt(i).setY(shouldY);
         }
 
         for (int i = pos - 1; i >= 0; i --){
             int s = pos - i;
-            itemList.get(i).setY(initY + s * subHeight);
+            float shouldY = initY + s * subHeight;
+            innerLayout.getChildAt(i).setY(shouldY > initDownY ? initDownY : shouldY);
+//            innerLayout.getChildAt(i).setY(shouldY);
         }
+
         invalidate();
     }
 
     public void setItemsDown(int pos){
-        for (int i = 0; i < itemList.size(); i ++){
+//        for (int i = 0; i < itemList.size(); i ++){
+//            if (pos == i){
+//                itemList.get(i).setY(initY);
+//                continue;
+//            }
+//            itemList.get(i).setY(initDownY);
+//        }
+        for (int i = 0; i < innerLayout.getChildCount(); i ++){
             if (pos == i){
-                itemList.get(i).setY(initY);
+                innerLayout.getChildAt(i).setY(initY);
                 continue;
             }
-            itemList.get(i).setY(initDownY);
+            innerLayout.getChildAt(i).setY(initDownY);
         }
     }
 
+    private void moveInnerLayout(int pos){
+        int middle = SHOW_ITEM_NUM / 2;
+        if (pos == middle){
+            return ;
+        }
+        int sub = 0;
+
+        if (pos > middle){
+            sub = Math.min(pos - middle, itemCount - 1 - showTail);
+            if (sub > 0){
+                showTail += sub;
+                showHead += sub;
+
+                Logger.d("start translation  " + innerLayout.getX() + "  ");
+                ObjectAnimator objectAnimator = ObjectAnimator.ofFloat(innerLayout, "translationX", - (sub * itemWidth));
+                AnimatorSet animatorSet = new AnimatorSet();
+                animatorSet.play(objectAnimator);
+                animatorSet.setDuration(500);
+                final int finalSub = sub;
+                animatorSet.addListener(new Animator.AnimatorListener() {
+                    @Override
+                    public void onAnimationStart(Animator animation) {
+
+                    }
+
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        for (int i = 0; i < finalSub; i ++){
+                            View view = innerLayout.getChildAt(0);
+                            innerLayout.removeView(view);
+                            innerLayout.setX(innerLayout.getX() + itemWidth);
+                            view.setY(initDownY);
+                            innerLayout.addView(view, innerLayout.getChildCount());
+                        }
+                        for (int i = 0; i < innerLayout.getChildCount(); i ++){
+                            Logger.d(" child  " + i + "  y  " + innerLayout.getChildAt(i).getY());
+                        }
+                    }
+
+                    @Override
+                    public void onAnimationCancel(Animator animation) {
+
+                    }
+
+                    @Override
+                    public void onAnimationRepeat(Animator animation) {
+
+                    }
+                });
+                animatorSet.start();
+            }
+        }
+    }
+
+    /*
     public void moveInnerLayout(int pos){
-        Logger.d("------------------");
-        Logger.d("show tail  " + showTail);
-        Logger.d("show head  " + showHead);
-        Logger.d("pos  " + (showHead + pos));
-        Logger.d("------------------");
         if (pos == SHOW_ITEM_NUM / 2){
             return ;
         }
@@ -241,18 +313,11 @@ public class ZuiMeiLayout extends HorizontalScrollView{
         int middle = SHOW_ITEM_NUM /2;
         if (pos > middle){
             sub = Math.min(pos - SHOW_ITEM_NUM / 2, itemCount - 1 - showTail);
-            Logger.d("------------------");
-            Logger.d("sub is  :  " + sub);
-            Logger.d("------------------");
             if (sub > 0){
                 showTail += sub;
                 showHead += sub;
-                for (ZuiMeiItem i : itemList){
-                    Logger.d("before  itemList  :  " + i.getX() + "  " + i.getY());
-                }
+
                 float rx = itemList.get(itemList.size() - 1).getRight();
-                Logger.d("right x  " + rx);
-                Logger.d("innerlayout x  " + innerLayout.getX());
                 for (int i = 0; i < sub; i ++){
                     ZuiMeiItem item = outItemList.get(i);
                     innerLayout.removeView(item);
@@ -264,13 +329,6 @@ public class ZuiMeiLayout extends HorizontalScrollView{
 
                     outItemList.add(itemList.get(i));
                     itemList.add(item);
-                    Logger.d("new add item  x  " + item.getX() + "   y  " + item.getY());
-                }
-                for (ZuiMeiItem i : outItemList){
-                    Logger.d("-- before remove outItemList  :  " + i.getX() + "  " + i.getY());
-                }
-                for (ZuiMeiItem i : itemList){
-                    Logger.d("-- before remove itemList  :  " + i.getX() + "  " + i.getY());
                 }
 
                 for (int i = 0; i < sub; i ++){
@@ -278,48 +336,29 @@ public class ZuiMeiLayout extends HorizontalScrollView{
                     itemList.remove(0);
                 }
 
-                for (ZuiMeiItem i : outItemList){
-                    Logger.d("outItemList  :  " + i.getX() + "  " + i.getY());
-                }
-                for (ZuiMeiItem i : itemList){
-                    Logger.d("itemList  :  " + i.getX() + "  " + i.toString() + "  " + i.getY()
-                            + "    view index  " + innerLayout.indexOfChild(i));
-                }
+//                List<Animator> viewAnimList = new ArrayList<>();
+//                for (ZuiMeiItem z : itemList){
+//                    ObjectAnimator animator = ObjectAnimator.ofFloat(z, "translationX", -(sub * itemWidth));
+//                    viewAnimList.add(animator);
+//                }
 
-                Logger.d("move  " + (sub * itemWidth) + "  innerlayout  x  " + innerLayout.getX()
-                        + "  move x  " + (innerLayout.getX() - (sub * itemWidth)));
                 ObjectAnimator animator = ObjectAnimator.ofFloat(innerLayout, "translateX", - (sub * itemWidth));
                 AnimatorSet animatorSet = new AnimatorSet();
                 animatorSet.playTogether(animator);
                 animatorSet.setDuration(500);
+//                final int finalSub = sub;
                 animatorSet.addListener(new Animator.AnimatorListener() {
                     @Override
                     public void onAnimationStart(Animator animation) {
-                        Logger.d("start innerlayout width  " + innerLayout.getWidth());
-                        Logger.d("stop innerlayout width  " + innerLayout.getWidth() + "  x " + innerLayout.getX()
-                                + "  right " + innerLayout.getRight() + "   left  " + innerLayout.getLeft());
-                        for (int i = 0; i < innerLayout.getChildCount(); i ++){
-                            Logger.d("start innerlayout child  " + i + "  x  " + innerLayout.getChildAt(i).getX());
-                        }
                     }
 
                     @Override
                     public void onAnimationEnd(Animator animation) {
-                        Logger.d("stop innerlayout width  " + innerLayout.getWidth() + "  x " + innerLayout.getX()
-                                + "  right " + innerLayout.getRight() + "   left  " + innerLayout.getLeft());
-                        for (int i = 0; i < innerLayout.getChildCount(); i ++){
-                            Logger.d("stop innerlayout child  " + i + "  x  " + innerLayout.getChildAt(i).getX());
-                        }
-
-                        for (ZuiMeiItem i : itemList){
-                            Logger.d("after animation stop itemList  :  " + i.toString() + "  " + i.getX() + "  " + i.getY());
-                        }
-
+//                        for (int i = 0; i < finalSub; i ++){
+//                            itemList.remove(0);
+//                        }
                         for (int i = 1; i < itemList.size(); i ++){
                             itemList.get(i).setX(itemList.get(i - 1).getRight());
-                        }
-                        for (ZuiMeiItem i : itemList){
-                            Logger.d("after refresh animation stop itemList  :  " + i.getX() + "  " + i.getY());
                         }
                     }
 
@@ -362,4 +401,5 @@ public class ZuiMeiLayout extends HorizontalScrollView{
 //            }
 //        }
     }
+    */
 }
