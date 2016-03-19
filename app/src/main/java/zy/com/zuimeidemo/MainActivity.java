@@ -8,8 +8,17 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ListView;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import zuimeiview.BaseZuiMeiAdapter;
+import zuimeiview.ZuiMeiLayout;
 
 public class MainActivity extends AppCompatActivity {
+
+    private ZuiMeiLayout zuiMeiLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,6 +35,18 @@ public class MainActivity extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
+
+        zuiMeiLayout = (ZuiMeiLayout) this.findViewById(R.id.zuimei);
+        List<Integer> list = new ArrayList<>();
+        for (int i = 0; i < 20; i ++){
+            if (i % 2 == 0){
+                list.add(R.mipmap.test);
+                continue;
+            }
+            list.add(R.mipmap.test1);
+        }
+        BaseZuiMeiAdapter adapter = new BaseZuiMeiAdapter(this, list);
+        zuiMeiLayout.setAdapter(adapter);
     }
 
     @Override

@@ -10,12 +10,9 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Adapter;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
-
-import java.util.ArrayList;
-import java.util.List;
+import android.widget.TextView;
 
 import utils.Logger;
 import zy.com.zuimeidemo.R;
@@ -36,8 +33,6 @@ public class ZuiMeiLayout extends HorizontalScrollView{
     private int itemHeight;
 
     private int itemCount;
-    private int head;
-    private int tail;
     private int showHead;
     private int showTail;
 
@@ -50,10 +45,8 @@ public class ZuiMeiLayout extends HorizontalScrollView{
 
     private boolean initView;
 
-    private Adapter adapter;
+    private ZuiMeiAdapter adapter;
     private LinearLayout innerLayout;
-    private List<ZuiMeiItem> itemList;
-    private List<ZuiMeiItem> outItemList;
 
     public ZuiMeiLayout(Context context) {
         this(context, null);
@@ -87,8 +80,6 @@ public class ZuiMeiLayout extends HorizontalScrollView{
         lastPos = 0;
         showHead = 0;
         showTail = SHOW_ITEM_NUM - 1;
-        itemList = new ArrayList<>();
-        outItemList = new ArrayList<>();
     }
 
     public void setInnerView(){
@@ -97,38 +88,33 @@ public class ZuiMeiLayout extends HorizontalScrollView{
         innerLayout.setBackgroundColor(getResources().getColor(android.R.color.holo_red_light));
         LinearLayout.LayoutParams itemParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.MATCH_PARENT);
-//        itemParams.weight = 1;
         for (int i = 0; i < SHOW_ITEM_NUM + OUT_ITEM_NUM * 2; i ++){
             ZuiMeiItem zuiMeiItem = new ZuiMeiItem(context);
-            zuiMeiItem.setText("te"+ i);
             zuiMeiItem.setY(initHeight);
             innerLayout.addView(zuiMeiItem, itemParams);
-            if (i < SHOW_ITEM_NUM){
-                itemList.add(zuiMeiItem);
-            }else {
-                outItemList.add(zuiMeiItem);
-            }
         }
         LayoutParams layoutParams = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT);
         this.addView(innerLayout, layoutParams);
     }
 
-    public void setAdapter(Adapter adapter){
-        this.adapter = adapter;
+    public void setAdapter(ZuiMeiAdapter adapter){
+        if (adapter != null){
+            this.adapter = adapter;
+            this.itemCount = adapter.getCount();
+            refreshView();
+        }
     }
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        int width = MeasureSpec.getSize(widthMeasureSpec);
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         if (initView){
-//            itemWidth = innerLayout.getChildAt(0).getWidth();
             itemWidth = this.getWidth() / (SHOW_ITEM_NUM);
             itemHeight = innerLayout.getChildAt(0).getHeight();
             subHeight = (itemHeight - initHeight) / (SHOW_ITEM_NUM - 1);
@@ -139,32 +125,19 @@ public class ZuiMeiLayout extends HorizontalScrollView{
             innerLayout.setX(- (OUT_ITEM_NUM * itemWidth));
 
             for (int i = 0; i < SHOW_ITEM_NUM + OUT_ITEM_NUM * 2; i ++){
-                View view = innerLayout.getChildAt(i);
-                view.setMinimumWidth(itemWidth);
+                ZuiMeiItem item = (ZuiMeiItem) innerLayout.getChildAt(i);
+                item.setItemWidth(itemWidth);
+                if (i > OUT_ITEM_NUM){
+                    item.removeAllViews();
+                    item.addView(getAdapterView(i));
+                }
                 if (i == OUT_ITEM_NUM){
-                    view.setY(initY);
+                    item.setY(initY);
                 }else {
-                    view.setY(initDownY);
+                    item.setY(initDownY);
                 }
             }
 
-//            itemList.get(0).setWidth(itemWidth);
-//            for (int i = 1; i < SHOW_ITEM_NUM + OUT_ITEM_NUM; i ++){
-//                ZuiMeiItem item;
-//                if (i >= SHOW_ITEM_NUM){
-//                    item = outItemList.get(i - SHOW_ITEM_NUM);
-//                }else {
-//                    item = itemList.get(i);
-//                }
-//                item.setY(initDownY);
-//                item.setWidth(itemWidth);
-//            }
-//            for (int i = 0; i < OUT_ITEM_NUM; i ++){
-//                ZuiMeiItem item = new ZuiMeiItem(context);
-//                item.setText("new add");
-//                item.setWidth(itemWidth);
-//                item.setY(initDownY);
-//            }
             initView = false;
         }
     }
@@ -174,7 +147,6 @@ public class ZuiMeiLayout extends HorizontalScrollView{
         float x = event.getX();
         float y = event.getY();
         int pos = getEventPos(x, y);
-//        Logger.d("curPos  " + pos);
 
         switch (event.getAction()){
             case MotionEvent.ACTION_DOWN:
@@ -210,43 +182,24 @@ public class ZuiMeiLayout extends HorizontalScrollView{
     }
 
     public void setItemsHeight(int pos){
-//        itemList.get(pos).setY(initY);
-//        for (int i = pos + 1; i < itemList.size(); i ++){
-//            int s = i - pos;
-//            itemList.get(i).setY(initY + s * subHeight);
-//        }
-//
-//        for (int i = pos - 1; i >= 0; i --){
-//            int s = pos - i;
-//            itemList.get(i).setY(initY + s * subHeight);
-//        }
         int inPos = getRealPos(pos);
         innerLayout.getChildAt(inPos).setY(initY);
         for (int i = inPos + 1; i < innerLayout.getChildCount(); i ++){
             int s = i - inPos;
             float shouldY = initY + s * subHeight;
             innerLayout.getChildAt(i).setY(shouldY > initDownY ? initDownY : shouldY);
-//            innerLayout.getChildAt(i).setY(shouldY);
         }
 
         for (int i = inPos - 1; i >= 0; i --){
             int s = inPos - i;
             float shouldY = initY + s * subHeight;
             innerLayout.getChildAt(i).setY(shouldY > initDownY ? initDownY : shouldY);
-//            innerLayout.getChildAt(i).setY(shouldY);
         }
 
         invalidate();
     }
 
     public void setItemsDown(int pos){
-//        for (int i = 0; i < itemList.size(); i ++){
-//            if (pos == i){
-//                itemList.get(i).setY(initY);
-//                continue;
-//            }
-//            itemList.get(i).setY(initDownY);
-//        }
         int inPos = getRealPos(pos);
         for (int i = 0; i < innerLayout.getChildCount(); i ++){
             if (inPos == i){
@@ -287,11 +240,16 @@ public class ZuiMeiLayout extends HorizontalScrollView{
                     @Override
                     public void onAnimationEnd(Animator animation) {
                         for (int i = 0; i < finalSub; i ++){
-                            View view = innerLayout.getChildAt(0);
-                            innerLayout.removeView(view);
+                            ZuiMeiItem item = (ZuiMeiItem) innerLayout.getChildAt(0);
+                            innerLayout.removeView(item);
                             innerLayout.setX(innerLayout.getX() + itemWidth);
-                            view.setY(initDownY);
-                            innerLayout.addView(view, innerLayout.getChildCount());
+                            item.setY(initDownY);
+                            if (showTail + i + 1 < itemCount){
+                                Logger.d("remove views  " + showTail + "  " + (showTail + i + 1));
+                                item.removeAllViews();
+                                item.addView(getAdapterView(showTail + i + 1));
+                            }
+                            innerLayout.addView(item, innerLayout.getChildCount());
                         }
                     }
 
@@ -332,11 +290,15 @@ public class ZuiMeiLayout extends HorizontalScrollView{
                     @Override
                     public void onAnimationEnd(Animator animation) {
                         for (int i = 0; i < finalSub; i ++){
-                            View view = innerLayout.getChildAt(innerLayout.getChildCount() - 1);
-                            innerLayout.removeView(view);
+                            ZuiMeiItem item = (ZuiMeiItem) innerLayout.getChildAt(innerLayout.getChildCount() - 1);
+                            innerLayout.removeView(item);
                             innerLayout.setX(innerLayout.getX() - itemWidth);
-                            view.setY(initDownY);
-                            innerLayout.addView(view, 0);
+                            item.setY(initDownY);
+                            item.removeAllViews();
+                            if (showHead - i >= 0){
+                                item.addView(getAdapterView(showHead - i));
+                            }
+                            innerLayout.addView(item, 0);
                         }
                     }
 
@@ -364,8 +326,21 @@ public class ZuiMeiLayout extends HorizontalScrollView{
         return pos + OUT_ITEM_NUM;
     }
 
-    private int getRealSub(int sub){
-        return sub + OUT_ITEM_NUM;
+    private View getAdapterView(int pos){
+        if (adapter == null || pos >= adapter.getCount()){
+            TextView textView = new TextView(context);
+            textView.setText("null");
+            return textView;
+        }
+        return adapter.getView(pos);
     }
 
+    private void refreshView(){
+        for (int i = 0; i < SHOW_ITEM_NUM; i ++){
+            ZuiMeiItem item = (ZuiMeiItem) innerLayout.getChildAt(i + showHead + OUT_ITEM_NUM);
+            item.removeAllViews();
+            item.addView(adapter.getView(i + showHead));
+            item.setItemWidth(itemWidth);
+        }
+    }
 }
