@@ -39,11 +39,11 @@ public class MainActivity extends AppCompatActivity {
         zuiMeiLayout = (ZuiMeiLayout) this.findViewById(R.id.zuimei);
         List<Integer> list = new ArrayList<>();
         for (int i = 0; i < 20; i ++){
-            if (i % 2 == 0){
-                list.add(R.mipmap.test);
-                continue;
-            }
-            list.add(R.mipmap.test1);
+//            if (i % 2 == 0){
+//                list.add(R.mipmap.test);
+//                continue;
+//            }
+            list.add(R.mipmap.test);
         }
         BaseZuiMeiAdapter adapter = new BaseZuiMeiAdapter(this, list);
         zuiMeiLayout.setAdapter(adapter);
